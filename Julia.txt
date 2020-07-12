@@ -1,0 +1,10 @@
+f_c(z) = z² + c
+* Mandelbrot set; vary c, z=0, iterate f_c. i.e. f_c(0) = c, f_c²(0) = c^2 + c, f_c³(0) = (c²+c)² + c etc.
+* "c-th" Julia set; vary z, keep c, iterate f_c. i.e. f_c(z) = z²+c, f_c²(z) = (z²+c)²+c etc.
+
+f_c(z) = c^z
+* Power tower fractal; vary c, z=0, iterate f_c. i.e. f_c(0)=1, f_c²(0)=c, f_c³(0)=c^c, f_c⁴(0)=c^(c^c) etc
+* "c-th" Julia set; vary z, keep c, iterate f_c. i.e. f_c(z)=c^z, f_c²(z)=c^(c^z) etc
+
+Use c = 0.7885 e^(ia) where a ranges from 0 to 2pi
+Nb. c^z = exp(log(c)*z). Note log(c) = log(0.7885) + ia
