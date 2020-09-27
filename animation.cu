@@ -10,7 +10,7 @@
 // ------------------------
 
 // RENDERING PARAMETERS
-#define sharpness     2000                                          // number of pixels specifying PNG pngWidth
+#define sharpness     1000                                          // number of pixels specifying PNG pngWidth
 #define maxIter       500                                          // set higher for highly zoomed-in pictures
 #define nFrames       900
 #define PI            3.14159265
@@ -22,14 +22,104 @@ double centerIm = 0;
 
 double epsilon = 5;
 
-double radius = 0.7885;
-
 // See the bottom of this code for a discussion of some output possibilities.
 char*   filenameF =   "output/JuliaSet%05d.png";
 void create_frame(int iteration);
 
+typedef struct RgbColor
+{
+  unsigned char r;
+  unsigned char g;
+  unsigned char b;
+} RgbColor;
+
+typedef struct HsvColor
+{
+  unsigned char h;
+  unsigned char s;
+  unsigned char v;
+} HsvColor;
+
+RgbColor HsvToRgb(HsvColor hsv)
+{
+  RgbColor rgb;
+  unsigned char region, remainder, p, q, t;
+
+  if (hsv.s == 0)
+  {
+    rgb.r = hsv.v;
+    rgb.g = hsv.v;
+    rgb.b = hsv.v;
+    return rgb;
+  }
+
+  region = hsv.h / 43;
+  remainder = (hsv.h - (region * 43)) * 6; 
+
+  p = (hsv.v * (255 - hsv.s)) >> 8;
+  q = (hsv.v * (255 - ((hsv.s * remainder) >> 8))) >> 8;
+  t = (hsv.v * (255 - ((hsv.s * (255 - remainder)) >> 8))) >> 8;
+
+  switch (region)
+  {
+    case 0:
+      rgb.r = hsv.v; rgb.g = t; rgb.b = p;
+      break;
+    case 1:
+      rgb.r = q; rgb.g = hsv.v; rgb.b = p;
+      break;
+    case 2:
+      rgb.r = p; rgb.g = hsv.v; rgb.b = t;
+      break;
+    case 3:
+      rgb.r = p; rgb.g = q; rgb.b = hsv.v;
+      break;
+    case 4:
+      rgb.r = t; rgb.g = p; rgb.b = hsv.v;
+      break;
+    default:
+      rgb.r = hsv.v; rgb.g = p; rgb.b = q;
+      break;
+  }
+
+  return rgb;
+}
+
+HsvColor RgbToHsv(RgbColor rgb)
+{
+  HsvColor hsv;
+  unsigned char rgbMin, rgbMax;
+
+  rgbMin = rgb.r < rgb.g ? (rgb.r < rgb.b ? rgb.r : rgb.b) : (rgb.g < rgb.b ? rgb.g : rgb.b);
+  rgbMax = rgb.r > rgb.g ? (rgb.r > rgb.b ? rgb.r : rgb.b) : (rgb.g > rgb.b ? rgb.g : rgb.b);
+
+  hsv.v = rgbMax;
+  if (hsv.v == 0)
+  {
+    hsv.h = 0;
+    hsv.s = 0;
+    return hsv;
+  }
+
+  hsv.s = 255 * long(rgbMax - rgbMin) / hsv.v;
+  if (hsv.s == 0)
+  {
+    hsv.h = 0;
+    return hsv;
+  }
+
+  if (rgbMax == rgb.r)
+    hsv.h = 0 + 43 * (rgb.g - rgb.b) / (rgbMax - rgbMin);
+  else if (rgbMax == rgb.g)
+    hsv.h = 85 + 43 * (rgb.b - rgb.r) / (rgbMax - rgbMin);
+  else
+    hsv.h = 171 + 43 * (rgb.r - rgb.g) / (rgbMax - rgbMin);
+
+  return hsv;
+}
+
 __global__
-void fillColor(int n, int H, int W, int* color, int* grey, int blue, double reStart, double reEnd, double imStart, double imEnd, double radius, double a) {
+void fillColor(int n, int H, int W, int* color, int* palette, int black, double reStart, double reEnd, double imStart, double imEnd, double radius, double a) {
 
   int T = blockIdx.x*blockDim.x + threadIdx.x;
   if (T >= n) return;
@@ -44,7 +134,7 @@ void fillColor(int n, int H, int W, int* color, int* grey, int blue, double reSt
   int toggleOverflow = 0;                                          
   int numberOfIterations = 0;                                      
   if (re == 0 && im == 0){
-    color[T] = blue;
+    color[T] = black;
   }
   else {
     logRe = log(radius);
@@ -67,8 +157,8 @@ void fillColor(int n, int H, int W, int* color, int* grey, int blue, double reSt
     }
   }
 
-  int shade = 255 - ((numberOfIterations * 255) / maxIter);
-  color[T] = grey[shade];
+  int shade = (255 * numberOfIterations) / maxIter;
+  color[T] = numberOfIterations < maxIter ? palette[shade] : black;
 }
 
 int main(){
@@ -82,9 +172,10 @@ void create_frame(int frame) {
   gdImagePtr  image;                                 // a GD image object
   char        filename[80];
   int         i, T, x, y;                            // array subscripts
-  int         blue, grey[256];       // red, all possible shades of grey
-  int*        d_grey;
-
+  int         black, palette[256];       // red, all possible shades of palette
+  int*        d_palette;
+  HsvColor    col_hsv;
+  RgbColor    col_rgb;
 
   double reStart = centerRe - epsilon;
   double reEnd = centerRe + epsilon;
@@ -92,6 +183,9 @@ void create_frame(int frame) {
   double imEnd = centerIm + epsilon;
 
   double a = 2 * PI * frame / nFrames;
+  double radius = 0.7885;
+
+  printf("radius: %f\n", radius);
 
   int pngWidth = sharpness;
   int pngHeight = pngWidth * (imEnd - imStart) / (reEnd - reStart);
@@ -106,20 +200,30 @@ void create_frame(int frame) {
 
   image = gdImageCreate(pngWidth, pngHeight);
 
-  blue  = gdImageColorAllocate(image, 0, 0, 255);
+  black = gdImageColorAllocate(image, 0, 0, 0);
   
-  for (i=0; i<256; i++){
-    grey[i] = gdImageColorAllocate(image, i,i,i);
+  for (i=0; i<255; i++){
+    //hue = int(255 * m / MAX_ITER)
+    //saturation = 255
+    //value = 255 if m < MAX_ITER else 0
+
+    col_hsv.h = i;
+    col_hsv.s = 255;
+    col_hsv.v = (i == 255 ? 0 : 255);
+    col_rgb = HsvToRgb(col_hsv);
+    palette[i] = gdImageColorAllocate(image, col_rgb.r, col_rgb.g, col_rgb.b);
   }
 
-  //void fillColor(int n, int H, int W, int* color, int* grey, int blue) {
-  cudaMalloc(&d_grey, 256*sizeof(int)); 
+  palette[255] = gdImageColorAllocate(image, 0, 0, 0);
+
+  //void fillColor(int n, int H, int W, int* color, int* palette, int black) {
+  cudaMalloc(&d_palette, 256*sizeof(int)); 
   cudaMalloc(&d_color, N*sizeof(int));
 
-  cudaMemcpy(d_grey, grey, 256*sizeof(int), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_palette, palette, 256*sizeof(int), cudaMemcpyHostToDevice);
 
   // Calculate power tower convergence / divergence
-  fillColor<<<(pngWidth*pngHeight+255)/256, 256>>>(N, pngHeight, pngWidth, d_color, d_grey, blue, reStart, reEnd, imStart, imEnd, radius, a);
+  fillColor<<<(pngWidth*pngHeight+255)/256, 256>>>(N, pngHeight, pngWidth, d_color, d_palette, black, reStart, reEnd, imStart, imEnd, radius, a);
   cudaMemcpy(color, d_color, N*sizeof(int), cudaMemcpyDeviceToHost);
 
   for (T=0; T<pngWidth*pngHeight; T++) {
@@ -131,7 +235,7 @@ void create_frame(int frame) {
   // Free 2D array
   free(color);
   cudaFree(d_color);
-  cudaFree(d_grey);
+  cudaFree(d_palette);
   // Finally, write the image out to a file.
   sprintf(filename, filenameF, frame);
   printf("Creating output file '%s'.\n", filename);

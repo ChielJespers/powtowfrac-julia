@@ -6,5 +6,19 @@ f_c(z) = c^z
 * Power tower fractal; vary c, z=0, iterate f_c. i.e. f_c(0)=1, f_c²(0)=c, f_c³(0)=c^c, f_c⁴(0)=c^(c^c) etc
 * "c-th" Julia set; vary z, keep c, iterate f_c. i.e. f_c(z)=c^z, f_c²(z)=c^(c^z) etc
 
+ANIMATION 1.
 Use c = 0.7885 e^(ia) where a ranges from 0 to 2pi
 Nb. c^z = exp(log(c)*z). Note log(c) = log(0.7885) + ia
+
+ANIMATION 2.
+Use c = r e^(i * 42/900pi) where r ranges from 2 to 5
+
+ANIMATION 3.
+Use c = 1.2885   e^(ia) where a ranges from 0 to 2pi
+Nb. c^z = exp(log(c)*z). Note log(c) = log(0.7885) + ia
+
+ANIMATION 3.
+Use c = 2.4885   e^(ia) where a ranges from 0 to 2pi
+
+
+Make vid: fmpeg -framerate 30 -i output/JuliaSet%05d.png output_radius.mp4
