@@ -10,9 +10,9 @@
 // ------------------------
 
 // RENDERING PARAMETERS
-#define sharpness     10000                                          // number of pixels specifying PNG pngWidth
-#define maxIter       500                                         // set higher for highly zoomed-in pictures
-#define nFrames       900
+#define sharpness     1000                                          // number of pixels specifying PNG pngWidth
+#define maxIter       100                                         // set higher for highly zoomed-in pictures
+#define nFrames       300
 #define PI            3.14159265
 
 // ------------------------
@@ -141,6 +141,9 @@ void fillColor(int n, int H, int W, int* color, int* palette, int black, double 
     logIm = a;
     nextRe = re;
     nextIm = im;
+    // if (blockIdx.x % 10 == 0 && threadIdx.x == 0) {
+    //   printf("re = %f, im = %f, logRe = %f, logIm = %f\n", re, im, logRe, logIm);
+    // }
     while (numberOfIterations < maxIter && toggleOverflow == 0)
     {
         powerRe = (nextRe * logRe - nextIm * logIm);
@@ -162,7 +165,7 @@ void fillColor(int n, int H, int W, int* color, int* palette, int black, double 
 }
 
 int main(){
-  create_frame(300);
+  create_frame(21);
 }
 
 void create_frame(int frame) {
@@ -180,9 +183,10 @@ void create_frame(int frame) {
   double imStart = centerIm - epsilon;
   double imEnd = centerIm + epsilon;
 
-  double a = 2 * PI * frame / nFrames;
-  double radius = 0.7885;
+  double a = .5 * PI * (double) frame / nFrames;
+  double radius = 2;
 
+  printf("a: %f\n", a);
   printf("radius: %f\n", radius);
 
   int pngWidth = sharpness;

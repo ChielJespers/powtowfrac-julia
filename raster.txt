@@ -1,0 +1,25 @@
+RESOLUTIE
+4000x4000
+100x100
+
+40x40 plaatjes
+
+INTERVAL
+-2,5 - 2,5i
+2,5 + 2,5i
+
+R = 2,5
+Altijd rond 0
+
+S = sharpness (van benaderde powtowfrac)
+G = granulariteit (number of blocks)
+S_B = sharpness van julia set = S/G naar boven afgerond
+1 <= I,J <= G
+
+LB(I,J) = -R + 2R * (I - 1) / G + i * (R - 2R * (J-1) / G)
+C(I,J) = LB(I,J) + R/G - i*R/G
+
+1..40
+1..40
+
+1600

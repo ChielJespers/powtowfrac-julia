@@ -10,17 +10,18 @@
 // ------------------------
 
 // RENDERING PARAMETERS
-#define sharpness     1000                                          // number of pixels specifying PNG pngWidth
-#define maxIter       500                                          // set higher for highly zoomed-in pictures
-#define nFrames       900
+#define sharpness     20000                                          // number of pixels specifying PNG pngWidth
+#define maxIter       100                                          // set higher for highly zoomed-in pictures
+#define nFrames       300
 #define PI            3.14159265
+#define E             2.71828
 
 // ------------------------
 // COMPLEX DOMAIN
 double centerRe = 0;
 double centerIm = 0;
 
-double epsilon = 5;
+double epsilon = 10;
 
 // See the bottom of this code for a discussion of some output possibilities.
 char*   filenameF =   "output/JuliaSet%05d.png";
@@ -162,9 +163,9 @@ void fillColor(int n, int H, int W, int* color, int* palette, int black, double 
 }
 
 int main(){
-  for (int i = 0; i < nFrames; i++) {
-    create_frame(i);
-  }
+  // for (int i = 0; i < nFrames; i++) {
+    create_frame(21);
+  // }
 }
 
 void create_frame(int frame) {
@@ -182,8 +183,8 @@ void create_frame(int frame) {
   double imStart = centerIm - epsilon;
   double imEnd = centerIm + epsilon;
 
-  double a = 2 * PI * frame / nFrames;
-  double radius = 0.7885;
+  double a = .5 * PI * (double) frame / nFrames;
+  double radius = 2;
 
   printf("radius: %f\n", radius);
 

@@ -1,2 +1,6 @@
 *.mp4
 *.png
+.fuse_hidden*
+*.pyc
+*.so
+powtowfrac
